@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:c_shield_aip/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_aip.dart';
 
 const baseUrl = 'https://demo-spring-server.onrender.com';
 const sslHostname = 'demo-spring-server.onrender.com';
@@ -8,8 +8,8 @@ const sslPins = ['sha256/kIdp6NNEd8wsugYyyIYFsi1ylMCED3hZbSR8ZFsa/A4='];
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize CShieldSdk.
-  await CShieldEmbedded.initialize();
+  // Initialize CShieldAIP.
+  await CShieldAIP.initialize();
   try {
     await CShieldSSL.configure(pins: sslPins, hostname: sslHostname);
   } on CShieldException catch (e) {

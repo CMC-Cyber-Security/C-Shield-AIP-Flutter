@@ -1,5 +1,5 @@
 import java.io.File
-group = "com.cmc.c_shield_embedded.c_shield_embedded"
+group = "com.cmc.c_shield_aip.c_shield_aip"
 version = "1.0-SNAPSHOT"
 
 buildscript {
@@ -78,7 +78,7 @@ tasks.named("preBuild").configure {
 }
 
 android {
-    namespace = "com.cmc.c_shield_embedded.c_shield_embedded"
+    namespace = "com.cmc.c_shield_aip.c_shield_aip"
 
     compileSdk = 34
 

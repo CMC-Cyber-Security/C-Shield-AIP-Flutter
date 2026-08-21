@@ -1,6 +1,6 @@
 # C-Shield AIP Flutter SDK Integration — iOS Host App
 
-The `c_shield_embedded` plugin does not bundle the XCFramework. The host app is
+The `c_shield_aip` plugin does not bundle the XCFramework. The host app is
 responsible for providing `CShieldEmbedded.xcframework` (Debug/Release variants)
 and `OpenSSL.xcframework`.
 
@@ -76,7 +76,7 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
-    # 1. Pod targets — so the c_shield_embedded plugin can compile `import CShieldEmbedded`.
+    # 1. Pod targets — so the c_shield_aip plugin can compile `import CShieldEmbedded`.
     # Use sdk-conditional paths so the linker picks the correct slice (simulator vs device).
     # DO NOT add both slices to a non-conditional variable: Xcode searches paths in
     # order and will link the wrong ios-arm64 (device binary) when building for the
@@ -223,20 +223,20 @@ $(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/CShieldEmbedded.framework
 
 ## Differences from `c_shield_sdk` (cshieldflutter)
 
-`c_shield_embedded` is a focused build — AIP + SSL pinning only, no RASP:
+`c_shield_aip` is a focused build — API Protection + SSL Pinning only, no RASP:
 
-- No `RaspBridge`, no `c_shield_embedded/rasp_events` or
-  `c_shield_embedded/threat_events` EventChannel.
+- No `RaspBridge`, no `c_shield_aip/rasp_events` or
+  `c_shield_aip/threat_events` EventChannel.
 - `sdk.initialize` doesn't accept `loadAppThreatReaction`/`loadAppThreatPopup`.
-- `CShieldErrorCode` has only 6 codes: `aip_invalid_signature`,
-  `aip_signing_failed`, `ssl_not_configured`, `ssl_pin_mismatch`,
+- `CShieldErrorCode` has only 6 codes: `ap_invalid_signature`,
+  `ap_signing_failed`, `ssl_not_configured`, `ssl_pin_mismatch`,
   `invalid_argument`, `native_error` — it does not include
-  `aip_missing_header`, `aip_timestamp_expired`, or `aip_proxy_ca` (those
-  codes are only used by advanced AIP flows not present in this SDK).
+  `ap_missing_header`, `ap_timestamp_expired`, or `ap_proxy_ca` (those
+  codes are only used by advanced API Protection flows not present in this SDK).
 
 The CocoaPods infrastructure (Podfile, Libs/, Run Script) is set up
 **identically** to the instructions above — only the pod name changes, from
-`c_shield_sdk` to `c_shield_embedded`.
+`c_shield_sdk` to `c_shield_aip`.
 
 ---
 
