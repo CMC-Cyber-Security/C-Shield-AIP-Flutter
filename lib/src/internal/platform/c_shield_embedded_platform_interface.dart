@@ -40,8 +40,7 @@ abstract class CShieldEmbeddedPlatform extends PlatformInterface {
   /// Executes an HTTPS request on the native side (OkHttp / URLSession) with
   /// certificate pinning enforced over the full chain.
   ///
-  /// Returns a map: `{ 'statusCode': int, 'headers': Map<String, List<String>>,
-  /// 'body': Uint8List, 'reasonPhrase': String? }`.
+  /// Returns a map: `{ 'statusCode': int, 'headers': Map<String, List<String>>, 'body': Uint8List, 'reasonPhrase': String? }`.
   Future<Map<Object?, Object?>> sslHttpRequest({
     required String method,
     required String url,

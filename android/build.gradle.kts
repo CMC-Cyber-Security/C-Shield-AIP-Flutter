@@ -29,7 +29,12 @@ allprojects {
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+}
+
+val agpMajor = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.substringBefore('.').toInt()
+
+if (agpMajor < 9) {
+    apply(plugin = "org.jetbrains.kotlin.android")
 }
 
 // Locate c-shield-sdk-<variant>.aar — two possible locations:
@@ -75,7 +80,7 @@ tasks.named("preBuild").configure {
 android {
     namespace = "com.cmc.c_shield_embedded.c_shield_embedded"
 
-    compileSdk = 36
+    compileSdk = 34
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -1,5 +1,5 @@
-import 'package:c_shield_embedded/src/api/exceptions/c_shield_exception.dart';
-import 'package:c_shield_embedded/src/internal/channels.dart';
+import 'package:c_shield_aip/src/api/exceptions/c_shield_exception.dart';
+import 'package:c_shield_aip/src/internal/channels.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 

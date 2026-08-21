@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:c_shield_embedded/src/internal/platform/c_shield_embedded_method_channel.dart';
+import 'package:c_shield_aip/src/internal/platform/c_shield_embedded_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

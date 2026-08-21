@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:c_shield_embedded/src/internal/platform/c_shield_embedded_platform_interface.dart';
+import 'package:c_shield_aip/src/internal/platform/c_shield_embedded_platform_interface.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 

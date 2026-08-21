@@ -1,113 +1,111 @@
-# C-Shield Embedded Flutter SDK
+# C-Shield AIP Flutter SDK
 
-C-Shield Embedded Flutter SDK là bản thu gọn của [C-Shield Flutter SDK](https://github.com/cmccsmobile/C-Shield-Flutter), chỉ tập trung vào một lớp bảo vệ:
+C-Shield AIP Flutter SDK provides **AIP (API Integrity Protection)** for Flutter applications, protecting the communication between the app and the server through certificate pinning and request/response signing.
 
-- **AIP (API Integrity Protection):** Bảo vệ giao tiếp giữa app và server thông qua certificate pinning và ký số request/response.
-
-SDK bọc native AAR (Android) và XCFramework (iOS), đảm bảo tầng ký/xác thực chạy ở native.
+The SDK wraps native AAR (Android) and XCFramework (iOS) libraries, so the signing/verification layer always runs natively.
 
 ---
 
-## Mục lục
+## Table of Contents
 
-1. [Tích hợp SDK](#1-tích-hợp-sdk)
-   - 1.1 [Thêm dependency vào pubspec.yaml](#11-thêm-dependency-vào-pubspecyaml)
-   - 1.2 [Cấu hình Android](#12-cấu-hình-android)
-   - 1.3 [Cấu hình iOS](#13-cấu-hình-ios)
-2. [Khởi tạo SDK](#2-khởi-tạo-sdk)
+1. [Integrating the SDK](#1-integrating-the-sdk)
+   - 1.1 [Add dependency to pubspec.yaml](#11-add-dependency-to-pubspecyaml)
+   - 1.2 [Android configuration](#12-android-configuration)
+   - 1.3 [iOS configuration](#13-ios-configuration)
+2. [Initializing the SDK](#2-initializing-the-sdk)
 3. [AIP — API Integrity Protection](#3-aip--api-integrity-protection)
-   - 3.1 [Chế độ tự động — CShieldInterceptor (http)](#31-chế-độ-tự-động--cshieldinterceptor-http)
-   - 3.2 [Chế độ tự động — CShieldDioInterceptor (Dio)](#32-chế-độ-tự-động--cshielddiointerceptor-dio)
-   - 3.3 [Chế độ thủ công — CShieldAIP](#33-chế-độ-thủ-công--cshieldaip)
-   - 3.4 [Giao thức ký số](#34-giao-thức-ký-số)
+   - 3.1 [Automatic mode — CShieldInterceptor (http)](#31-automatic-mode--cshieldinterceptor-http)
+   - 3.2 [Automatic mode — CShieldDioInterceptor (Dio)](#32-automatic-mode--cshielddiointerceptor-dio)
+   - 3.3 [Manual mode — CShieldAIP](#33-manual-mode--cshieldaip)
+   - 3.4 [Signing protocol](#34-signing-protocol)
 4. [SSL — Certificate Pinning](#4-ssl--certificate-pinning)
-   - 4.1 [Lấy giá trị pin](#41-lấy-giá-trị-pin)
-   - 4.2 [Cấu hình CShieldSSL](#42-cấu-hình-cshieldssl)
-   - 4.3 [Tích hợp với http package](#43-tích-hợp-với-http-package)
-   - 4.4 [Tích hợp với Dio](#44-tích-hợp-với-dio)
-   - 4.5 [Xác minh thủ công](#45-xác-minh-thủ-công)
-   - 4.6 [Khả năng, hạn chế và khuyến nghị](#46-khả-năng-hạn-chế-và-khuyến-nghị)
+   - 4.1 [Obtaining pin values](#41-obtaining-pin-values)
+   - 4.2 [Configuring CShieldSSL](#42-configuring-cshieldssl)
+   - 4.3 [Integrating with the http package](#43-integrating-with-the-http-package)
+   - 4.4 [Integrating with Dio](#44-integrating-with-dio)
+   - 4.5 [Manual verification](#45-manual-verification)
+   - 4.6 [Capabilities, limitations, and recommendations](#46-capabilities-limitations-and-recommendations)
 5. [Exceptions](#5-exceptions)
 
 ---
 
-## 1. Tích hợp SDK
+## 1. Integrating the SDK
 
-### 1.1 Thêm dependency vào pubspec.yaml
+### 1.1 Add dependency to pubspec.yaml
 
-Thêm `c_shield_embedded` vào `pubspec.yaml`:
+Add `c_shield_aip` to `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter:
     sdk: flutter
-  c_shield_embedded: ^1.0.0
+  c_shield_aip: ^1.0.0
 ```
 
-Sau đó chạy:
+Then run:
 
 ```bash
 flutter pub get
 ```
 
-### 1.2 Cấu hình Android
+### 1.2 Android configuration
 
-#### Bước 1 — Nhận các file AAR từ CMC CShield
+#### Step 1 — Obtain the AAR files from CMC CShield
 
-C-Shield Embedded SDK Android được build riêng cho từng khách hàng với certificate hash của app đã ký. Liên hệ CMC CShield để nhận file AAR tương ứng với signing certificate của bạn.
+The Android SDK is built per customer, using the certificate hash of your signed app. Contact CMC CShield to receive the AAR files matching your app's signing certificate.
 
-#### Bước 2 — Đặt các file AAR vào project
+#### Step 2 — Place the AAR files into the project
 
-Tạo thư mục `libs/` trong `android/app/` và đặt file AAR vào đó:
+Create a `libs/` folder under `android/app/` and place the AAR files there:
 
 ```
 your_app_flutter/
 └── android/
     └── app/
-        └── libs/  ← đặt file AAR vào đây
+        └── libs/  ← place the AAR files here
             └── cshield-embedded-release.aar
             └── cshield-embedded-debug.aar
 ```
 
-#### Bước 3 — Khai báo dependency trong build.gradle
+#### Step 3 — Declare the dependency in build.gradle
 
-Mở `android/app/build.gradle.kts` (hoặc `build.gradle`) và thêm:
+Open `android/app/build.gradle.kts` (or `build.gradle`) and add:
 
 ```kotlin
 android {
     defaultConfig {
-        minSdk = 24       // yêu cầu tối thiểu của C-Shield Embedded SDK
+        minSdk = 24       // minimum required by the SDK
     }
-    compileSdk = 36       // yêu cầu tối thiểu của C-Shield Embedded SDK
+    compileSdk = 34       // minimum required by the SDK
 }
 
 dependencies {
-    // C-Shield Embedded Android SDK — file AAR do CMC CShield cung cấp
+    // Android SDK — AAR files provided by CMC CShield
     debugImplementation(files("libs/cshield-embedded-debug.aar"))
     releaseImplementation(files("libs/cshield-embedded-release.aar"))
 }
 ```
 
-> Không cần khai thêm dependency transitive nào khác — bản embedded không có UI native (không RASP popup) nên không phụ thuộc Compose/Retrofit như bản đầy đủ `c_shield_sdk`.
+> No other transitive dependencies are needed — the SDK ships no native UI (no RASP popups), so it doesn't depend on Compose/Retrofit.
 
-#### Bước 4 — Build AAB khi release
+#### Step 4 — Build the release AAB
 
 ```bash
 flutter build appbundle --release
 ```
 
-### 1.3 Cấu hình iOS
+### 1.3 iOS configuration
 
-Vui lòng đọc và làm theo các bước tại [iOS Integration Guide](doc/ios-host-app-integration.md).
+Please follow the steps in the [iOS Integration Guide](https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter/blob/main/doc/ios-host-app-integration.md).
 
 ---
 
-## 2. Khởi tạo SDK
+## 2. Initializing the SDK
 
-Gọi `CShieldEmbedded.initialize()` **trước `runApp()`** trong hàm `main()`:
+Call `CShieldEmbedded.initialize()` **before `runApp()`** in your `main()` function:
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 import 'package:flutter/material.dart';
 
 Future<void> main() async {
@@ -117,105 +115,105 @@ Future<void> main() async {
 }
 ```
 
-Nếu không gọi `initialize()` trước khi dùng các API khác, hành vi native không được đảm bảo — luôn gọi trước mọi lệnh gọi `CShieldSSL`/`CShieldAIP` khác.
+If `initialize()` isn't called before using the other APIs, native behavior isn't guaranteed — always call it before any `CShieldSSL`/`CShieldAIP` call.
 
 ---
 
 ## 3. AIP — API Integrity Protection
 
-AIP ký số mỗi request gửi lên server và xác thực chữ ký của mỗi response nhận về, ngăn chặn MITM và replay attack.
+AIP signs every request sent to the server and verifies the signature of every response received, preventing MITM and replay attacks.
 
-SDK cung cấp hai cách tích hợp:
+The SDK offers two integration modes:
 
-- **Chế độ tự động (khuyến nghị):** Dùng `CShieldInterceptor` (cho `http` package) hoặc `CShieldDioInterceptor` (cho Dio). Sign/verify diễn ra hoàn toàn tự động.
-- **Chế độ thủ công:** Dùng `CShieldAIP` trực tiếp để kiểm soát hoàn toàn payload và timing.
+- **Automatic mode (recommended):** Use `CShieldInterceptor` (for the `http` package) or `CShieldDioInterceptor` (for Dio - recommended). Signing/verification happens fully automatically.
+- **Manual mode:** Use `CShieldAIP` directly for full control over payload and timing.
 
-### 3.1 Chế độ tự động — CShieldInterceptor (http)
+### 3.1 Automatic mode — CShieldInterceptor (http)
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 import 'package:http/http.dart' as http;
 
-// Khởi tạo một lần, tái sử dụng cho toàn bộ app
+// Create once, reuse across the whole app
 final client = CShieldInterceptor();
 
-// Hoặc kết hợp với SSL pinning:
+// Or combine with SSL pinning:
 final client = CShieldInterceptor(
   inner: CShieldSSL.createIOClient(),
 );
 
-// Sử dụng như http.Client thông thường:
+// Use just like a regular http.Client:
 final response = await client.post(
   Uri.parse('https://api.example.com/users'),
   headers: {'Content-Type': 'application/json'},
   body: jsonEncode({'name': 'Alice'}),
 );
-// cs-timestamp / cs-signature được đính kèm tự động vào request.
-// Response signature được xác thực tự động trước khi trả về.
+// cs-timestamp / cs-signature are attached to the request automatically.
+// The response signature is verified automatically before it's returned.
 ```
 
-**Tham số `CShieldInterceptor`:**
+**`CShieldInterceptor` parameters:**
 
-| Tham số | Kiểu | Mặc định | Mô tả |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `inner` | `http.Client?` | `http.Client()` | HTTP client bên trong (truyền client có SSL pinning để kết hợp) |
-| `verifyResponses` | `bool` | `true` | Xác thực chữ ký response; đặt `false` nếu server chưa tích hợp ký response |
+| `inner` | `http.Client?` | `http.Client()` | Inner HTTP client (pass a client with SSL pinning to combine both) |
+| `verifyResponses` | `bool` | `true` | Verify the response signature; set `false` if the server doesn't sign responses yet |
 
-### 3.2 Chế độ tự động — CShieldDioInterceptor (Dio)
+### 3.2 Automatic mode — CShieldDioInterceptor (Dio) - Recommended
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 
 final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
 
-// Thêm AIP interceptor
+// Add the AIP interceptor
 dio.interceptors.add(const CShieldDioInterceptor());
 
-// Kết hợp với SSL pinning:
+// Combine with SSL pinning:
 dio.httpClientAdapter = CShieldSSL.createDioAdapter();
 dio.interceptors.add(const CShieldDioInterceptor());
 
-// Sử dụng bình thường
+// Use normally
 final response = await dio.post('/api/v1/login', data: {'user': 'alice'});
 ```
 
-**Tham số `CShieldDioInterceptor`:**
+**`CShieldDioInterceptor` parameters:**
 
-| Tham số | Kiểu | Mặc định | Mô tả |
+| Parameter | Type | Default | Description |
 |---|---|---|---|
-| `verifyResponses` | `bool` | `true` | Xác thực chữ ký response; đặt `false` nếu server chưa ký response |
+| `verifyResponses` | `bool` | `true` | Verify the response signature; set `false` if the server doesn't sign responses |
 
-> Khi `verifyResponses: true`, interceptor tạm thời force `ResponseType.bytes` để đọc raw bytes xác thực, sau đó decode lại sang kiểu gốc trước khi trả về caller.
+> When `verifyResponses: true`, the interceptor temporarily forces `ResponseType.bytes` to read the raw bytes for verification, then decodes back to the original type before returning to the caller.
 
-### 3.3 Chế độ thủ công — CShieldAIP
+### 3.3 Manual mode — CShieldAIP
 
-Dùng khi cần kiểm soát hoàn toàn — WebSocket, custom HTTP client, hoặc khi cần log chi tiết payload.
+Use this when you need full control — WebSocket, a custom HTTP client, or detailed payload logging.
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 
-// 1. Ký request thủ công
+// 1. Sign a request manually
 final aipHeaders = await CShieldAIP.signRequest(
   method: 'POST',
-  path: '/api/v1/login',    // chỉ path, không có query string
+  path: '/api/v1/login',    // path only, no query string
   body: Uint8List.fromList(utf8.encode(jsonEncode({'user': 'alice'}))),
   contentType: 'application/json',
 );
 // aipHeaders = {'cs-timestamp': '...', 'cs-signature': '...'}
-// Đính kèm vào request trước khi gửi
+// Attach these to the request before sending
 
-// 2. Xác thực response thủ công
+// 2. Verify a response manually
 await CShieldAIP.verifyResponse(
   statusCode: 200,
   path: '/api/v1/login',
   headers: response.headers,
   body: responseBytes,
 );
-// Không throw = hợp lệ; throw CShieldException nếu thất bại
+// No throw = valid; throws CShieldException on failure
 
-// 3. Ký payload thô (nâng cao)
+// 3. Sign a raw payload (advanced)
 final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 final norm = await CShieldAIP.normalizeBody(
   body: bodyBytes,
@@ -224,108 +222,108 @@ final norm = await CShieldAIP.normalizeBody(
 final payload = 'POST./api/v1/login.$ts.${norm['hash']}';
 final signature = await CShieldAIP.sign(payload);
 
-// 4. Xác thực chữ ký thô
+// 4. Verify a raw signature
 await CShieldAIP.verify(payload: payload, signature: signature);
 ```
 
-**API `CShieldAIP`:**
+**`CShieldAIP` API:**
 
-| Phương thức | Mô tả |
+| Method | Description |
 |---|---|
-| `signRequest(method, path, body, contentType)` | Ký request và trả về map `{'cs-timestamp', 'cs-signature'}` |
-| `verifyResponse(statusCode, path, headers, body)` | Xác thực chữ ký response; throw `CShieldException` nếu thất bại |
-| `sign(payload)` | Ký payload thô; caller tự xây dựng payload string |
-| `verify(payload, signature)` | Xác thực chữ ký payload thô |
-| `normalizeBody(body, contentType)` | Chuẩn hoá body và tính hash; trả về `{'normalizedString', 'sizeInBytes', 'hash'}` |
+| `signRequest(method, path, body, contentType)` | Signs a request and returns a map `{'cs-timestamp', 'cs-signature'}` |
+| `verifyResponse(statusCode, path, headers, body)` | Verifies the response signature; throws `CShieldException` on failure |
+| `sign(payload)` | Signs a raw payload; the caller builds the payload string |
+| `verify(payload, signature)` | Verifies a raw payload's signature |
+| `normalizeBody(body, contentType)` | Normalizes the body and computes its hash; returns `{'normalizedString', 'sizeInBytes', 'hash'}` |
 
-### 3.4 Giao thức ký số
+### 3.4 Signing protocol
 
-**Request — client gửi lên server:**
+**Request — sent by the client to the server:**
 
-Headers đính kèm:
+Attached headers:
 ```
 cs-timestamp: <unix_seconds>
 cs-signature: <RSA_signature>
 ```
 
-Payload được ký:
+Signed payload:
 ```
 {METHOD}.{path}.{timestamp}.{SHA256(body)}
 ```
 
-Ví dụ:
+Example:
 ```
 POST./api/v1/login.1746700000.e3b0c44298fc1c149afbf4c8996fb924...
 ```
 
-**Response — server trả về:**
+**Response — returned by the server:**
 
-Headers mà server phải đính kèm:
+Headers the server must attach:
 ```
 cs-timestamp: <unix_seconds>
 cs-signature: <RSA_signature>
 ```
 
-Payload server ký:
+Payload the server signs:
 ```
 {statusCode}.{path}.{timestamp}.{SHA256(responseBody)}
 ```
 
-**Quy tắc:**
-- Timestamp phải nằm trong cửa sổ **+-30 giây** so với giờ thiết bị.
-- `path` là URL path không bao gồm query string (`/api/v1/login`, không phải `/api/v1/login?token=abc`).
-- SHA-256 của body là lowercase hex.
+**Rules:**
+- The timestamp must fall within a **±30 second** window of the device clock.
+- `path` is the URL path without the query string (`/api/v1/login`, not `/api/v1/login?token=abc`).
+- The SHA-256 hash of the body is lowercase hex.
 
 **Body normalization:**
 
-| Content-Type | Cách xử lý |
+| Content-Type | Handling |
 |---|---|
-| `application/json` / text | Body bytes dùng nguyên văn |
-| `multipart/form-data` | Chỉ lấy text fields (bỏ qua file parts), sắp xếp theo tên field, serialize JSON |
+| `application/json` / text | Body bytes are used verbatim |
+| `multipart/form-data` | Only text fields are used (file parts are ignored), sorted by field name, serialized as JSON |
 
 ---
 
 ## 4. SSL — Certificate Pinning
 
-Certificate pinning đảm bảo app chỉ chấp nhận đúng chứng chỉ của server đã biết, ngăn chặn MITM kể cả khi thiết bị tin tưởng CA giả.
+Certificate pinning ensures the app only accepts the known, correct server certificate, preventing MITM even when the device trusts a rogue CA.
 
-### 4.1 Lấy giá trị pin
+### 4.1 Obtaining pin values
 
-Pin là SHA-256 của SPKI (Subject Public Key Info) của certificate, encode base64:
+A pin is the SHA-256 hash of the certificate's SPKI (Subject Public Key Info), base64-encoded:
 
 ```bash
-# Lấy pin từ server trực tiếp
+# Get the pin directly from the server
 openssl s_client -connect api.example.com:443 -servername api.example.com 2>/dev/null \
   | openssl x509 -pubkey -noout \
   | openssl pkey -pubin -outform DER \
   | openssl dgst -sha256 -binary \
   | openssl base64
 
-# Thêm prefix "sha256/" vào kết quả
-# Ví dụ: sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+# Prefix the result with "sha256/"
+# Example: sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
 ```
 
-**Khuyến nghị: luôn cung cấp tối thiểu 2 pin** (primary + backup) để tránh lockout khi rotate certificate.
+**Recommendation: always provide at least 2 pins** (primary + backup) to avoid lockout when the certificate rotates.
 
-#### Pin intermediate CA để sống sót qua rotation
+#### Pin the intermediate CA to survive rotation
 
-Certificate leaf thường được **cấp lại định kỳ** (Let's Encrypt/Google Trust Services ~90 ngày) và **có thể đổi key mỗi lần** → pin leaf sẽ lệch và **app bị chặn kết nối** cho tới khi ra bản update. Để tránh, hãy pin **public key của một intermediate CA ổn định** (ít đổi trong nhiều năm) thay vì/bên cạnh leaf. `createDioAdapter()` khớp pin trên **toàn bộ chain**, nên chỉ cần một cert bất kỳ trong chain khớp là hợp lệ.
+Leaf certificates are usually **reissued periodically** (Let's Encrypt/Google Trust Services ~90 days) and **may change key on each reissue** → a leaf pin will go stale and **the app will be blocked from connecting** until an update ships. To avoid this, pin the **public key of a stable intermediate CA** (rarely changes for years) instead of, or alongside, the leaf. `createDioAdapter()` matches the pin against the **entire chain**, so any single certificate in the chain matching is enough.
 
 ```bash
-# Xem toàn bộ chain (leaf + intermediate + root)
+# View the full chain (leaf + intermediate + root)
 openssl s_client -connect api.example.com:443 -servername api.example.com -showcerts </dev/null 2>/dev/null
 
-# Với mỗi block "BEGIN CERTIFICATE" (cert #1 = intermediate), tính SPKI pin:
+# For each "BEGIN CERTIFICATE" block (cert #1 = intermediate), compute the SPKI pin:
 openssl x509 -in intermediate.pem -pubkey -noout \
   | openssl pkey -pubin -outform DER \
   | openssl dgst -sha256 -binary | openssl base64
 ```
 
-> ⚠️ **Chỉ đường Dio (`createDioAdapter`) mới khớp cả chain.** Đường `http` và `verifyPin` chỉ so leaf (xem [4.6](#46-khả-năng-hạn-chế-và-khuyến-nghị)) — pin intermediate sẽ **không** khớp ở hai đường đó.
+> ⚠️ **Only the Dio path (`createDioAdapter`) matches the whole chain.** The `http` path and `verifyPin` only compare the leaf (see [4.6](#46-capabilities-limitations-and-recommendations)) — pinning the intermediate will **not** match on those two paths.
 
-### 4.2 Cấu hình CShieldSSL
+### 4.2 Configuring CShieldSSL
 
-Gọi `configure()` sau `initialize()`, trước khi thực hiện bất kỳ network request nào:
+Call `configure()` after `initialize()`, before making any network request:
 
 ```dart
 await CShieldSSL.configure(
@@ -337,53 +335,53 @@ await CShieldSSL.configure(
 );
 ```
 
-**API `CShieldSSL`:**
+**`CShieldSSL` API:**
 
-| Phương thức | Mô tả |
+| Method | Description |
 |---|---|
-| `configure(pins, hostname)` | Cấu hình pinning; throw `ArgumentError`/`CShieldException(invalidArgument)` nếu pin rỗng, hostname trống, hoặc pin không có prefix `sha256/` |
-| `updatePins(pins, hostname)` | Cập nhật pin mới sau khi server rotate certificate (alias của `configure`) |
-| `isConfigured()` | Trả về `true` nếu đã cấu hình |
-| `createDioAdapter()` | **(Khuyến nghị)** Tạo `HttpClientAdapter` cho Dio. Request tới `hostname` được thực hiện ở **native** (OkHttp/URLSession) → pinning chạy ở tầng TLS với **full chain** (khớp leaf/intermediate/root). Host khác đi qua adapter mặc định. |
-| `createHttpClient()` | Tạo `HttpClient` (dart:io) với SPKI pinning qua `badCertificateCallback`. **Leaf-only, thuần Dart** — xem cảnh báo [4.6](#46-khả-năng-hạn-chế-và-khuyến-nghị) |
-| `createIOClient()` | Tạo `IOClient` (http package) — drop-in cho `http.Client()`. **Leaf-only, thuần Dart** |
-| `verifyPin(certDerBase64, host)` | Xác minh thủ công một certificate DER base64. **Chỉ kiểm SPKI của leaf** (Dart chỉ truyền được leaf) |
+| `configure(pins, hostname)` | Configures pinning; throws `ArgumentError`/`CShieldException(invalidArgument)` if pins are empty, hostname is blank, or a pin lacks the `sha256/` prefix |
+| `updatePins(pins, hostname)` | Updates the pins after the server rotates its certificate (alias for `configure`) |
+| `isConfigured()` | Returns `true` if already configured |
+| `createDioAdapter()` | **(Recommended)** Creates an `HttpClientAdapter` for Dio. Requests to `hostname` are made at the **native** layer (OkHttp/URLSession) → pinning runs at the TLS layer against the **full chain** (leaf/intermediate/root). Other hosts go through the default adapter. |
+| `createHttpClient()` | Creates an `HttpClient` (dart:io) with SPKI pinning via `badCertificateCallback`. **Leaf-only, pure Dart** — see the warning in [4.6](#46-capabilities-limitations-and-recommendations) |
+| `createIOClient()` | Creates an `IOClient` (http package) — a drop-in for `http.Client()`. **Leaf-only, pure Dart** |
+| `verifyPin(certDerBase64, host)` | Manually verifies a single certificate DER, base64-encoded. **Checks only the leaf's SPKI** (Dart can only pass the leaf) |
 
-### 4.3 Tích hợp với http package
+### 4.3 Integrating with the http package
 
-> ⚠️ **Không khuyến nghị cho API nhạy cảm.** Đường `http` dùng `badCertificateCallback` — callback này **chỉ kích hoạt khi cert FAIL validation mặc định**. Một cert MITM chain hợp lệ tới CA được tin (kể cả CA do nạn nhân tự cài) sẽ **pass mà không bị kiểm pin**. Ngoài ra nó **chỉ so leaf**, không pin được intermediate. Với dữ liệu nhạy cảm hãy dùng **Dio + `createDioAdapter()`** ([4.4](#44-tích-hợp-với-dio)).
+> ⚠️ **Not recommended for sensitive APIs.** The `http` path uses `badCertificateCallback`, which **only fires when the certificate fails default validation**. A MITM certificate chaining to a trusted CA (even a CA the victim installed themselves) will **pass without pin checking**. It also **only compares the leaf**, so intermediate pinning isn't possible. For sensitive data, use **Dio + `createDioAdapter()`** ([4.4](#44-integrating-with-dio)).
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 
-// Setup (một lần trong main() hoặc khởi tạo app)
+// Setup (once, in main() or app init)
 await CShieldSSL.configure(
   pins: ['sha256/...'],
   hostname: 'api.example.com',
 );
 
-// Tạo client (tái sử dụng, không tạo lại mỗi request)
+// Create the client (reuse it, don't recreate per request)
 final client = CShieldSSL.createIOClient();
 
-// Sử dụng giống http.Client thông thường
+// Use like a regular http.Client
 final response = await client.get(
   Uri.parse('https://api.example.com/data'),
 );
 ```
 
-**Kết hợp SSL pinning + AIP:**
+**Combining SSL pinning + AIP:**
 
 ```dart
 final client = CShieldInterceptor(
-  inner: CShieldSSL.createIOClient(), // SSL pinning ở lớp trong
+  inner: CShieldSSL.createIOClient(), // SSL pinning at the inner layer
 );
-// client vừa có certificate pinning vừa ký/xác thực AIP tự động
+// client now has both certificate pinning and automatic AIP signing/verification
 ```
 
-### 4.4 Tích hợp với Dio
+### 4.4 Integrating with Dio
 
 ```dart
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 import 'package:dio/dio.dart';
 
 await CShieldSSL.configure(
@@ -393,26 +391,27 @@ await CShieldSSL.configure(
 
 final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
 
-// Gắn SSL pinning vào Dio. Với host đã configure, request được thực hiện
-// ở NATIVE (OkHttp trên Android, URLSession trên iOS) — nơi thấy full
-// certificate chain — nên pinning khớp được cả intermediate/root.
-// Host khác đi qua adapter mặc định (không ảnh hưởng).
+// Attach SSL pinning to Dio. For a configured host, requests are made
+// at the NATIVE layer (OkHttp on Android, URLSession on iOS) — where
+// the full certificate chain is visible — so pinning can match
+// intermediate/root as well. Other hosts go through the default
+// adapter (unaffected).
 dio.httpClientAdapter = CShieldSSL.createDioAdapter();
 
-// Kết hợp với AIP
+// Combine with AIP
 dio.interceptors.add(const CShieldDioInterceptor());
 ```
 
-> **Buffered (không streaming).** Request/response được truyền trọn gói qua native. Không hỗ trợ upload/download progress, `ResponseType.stream`, hay SSE trên host được pin — xem [4.6](#46-khả-năng-hạn-chế-và-khuyến-nghị).
+> **Buffered, not streaming.** Requests/responses are passed through native as a whole. Upload/download progress, `ResponseType.stream`, and SSE are not supported on a pinned host — see [4.6](#46-capabilities-limitations-and-recommendations).
 
-### 4.5 Xác minh thủ công
+### 4.5 Manual verification
 
-> ⚠️ `verifyPin()` **chỉ kiểm SPKI của leaf certificate** (Dart chỉ truyền được leaf xuống native) và không thực hiện CA chain validation đầy đủ. Coi đây là tiện ích phụ, không phải cơ chế pinning chính. Cơ chế đầy đủ (full chain + CA validation) là `createDioAdapter()`.
+> ⚠️ `verifyPin()` **only checks the leaf certificate's SPKI** (Dart can only pass the leaf down to native) and does not perform full CA chain validation. Treat it as a secondary utility, not the primary pinning mechanism. The complete mechanism (full chain + CA validation) is `createDioAdapter()`.
 
-Dùng `verifyPin()` trong interceptor tuỳ chỉnh hoặc WebSocket:
+Use `verifyPin()` in a custom interceptor or WebSocket:
 
 ```dart
-// Lấy DER bytes của leaf certificate từ kết nối TLS
+// Get the DER bytes of the leaf certificate from the TLS connection
 final certDerBase64 = base64.encode(peerCertificateDerBytes);
 
 final trusted = await CShieldSSL.verifyPin(
@@ -428,72 +427,72 @@ if (!trusted) {
 }
 ```
 
-### 4.6 Khả năng, hạn chế và khuyến nghị
+### 4.6 Capabilities, limitations, and recommendations
 
-Ràng buộc gốc của Flutter: `dart:io` **chỉ expose leaf certificate**, không có API thuần Dart nào lấy được full chain. Vì vậy SDK **uỷ quyền transport cho native** (OkHttp/URLSession) ở đường Dio để pinning chạy đúng nơi có full chain — đây là mô hình được xem là chuẩn nhất cho Flutter.
+A fundamental Flutter constraint: `dart:io` **only exposes the leaf certificate** — there's no pure-Dart API to obtain the full chain. Because of this, the SDK **delegates transport to native** (OkHttp/URLSession) on the Dio path so pinning runs where the full chain is visible — this is considered the most reliable model available in Flutter.
 
-#### Đang làm được gì
+#### What works today
 
-| Năng lực | `createDioAdapter` (Dio) | `createIOClient` (http) | `verifyPin` |
+| Capability | `createDioAdapter` (Dio) | `createIOClient` (http) | `verifyPin` |
 |---|---|---|---|
-| Khớp SPKI **full chain** (leaf/intermediate/root) | ✅ | ❌ chỉ leaf | ❌ chỉ leaf |
-| Pin intermediate → chống rotation | ✅ | ❌ | ❌ |
-| System CA validation (fail-closed) | ✅ (native) | một phần¹ | một phần |
-| Chặn user-installed CA (Burp/Charles) | ✅ (native) | ❌² | — |
+| Matches SPKI across the **full chain** (leaf/intermediate/root) | ✅ | ❌ leaf only | ❌ leaf only |
+| Pin the intermediate → resilient to rotation | ✅ | ❌ | ❌ |
+| System CA validation (fail-closed) | ✅ (native) | partial¹ | partial |
+| Blocks user-installed CAs (Burp/Charles) | ✅ (native) | ❌² | — |
 
-¹ `badCertificateCallback` chỉ chạy khi validation mặc định thất bại.
-² MITM có cert chain hợp lệ tới CA được tin sẽ lọt (callback không kích hoạt).
+¹ `badCertificateCallback` only runs when default validation fails.
+² A MITM cert chaining to a trusted CA will pass through (the callback never fires).
 
-#### Hạn chế khi sử dụng
+#### Limitations
 
-**A. Bẩm sinh của Flutter — không cách nào trong SDK thoát được:**
-- **Phạm vi phủ hẹp**: chỉ traffic đi qua đúng Dio instance có adapter, và chỉ tới `hostname` đã config. **KHÔNG** pin: WebView (`webview_flutter`), tải ảnh (`Image.network`, `CachedNetworkImage`), thư viện HTTP khác, plugin bên thứ ba. → Dồn API nhạy cảm về Dio instance đã gắn adapter.
-- **Web build**: trình duyệt không cho app-level pinning.
-- **Quản lý rotation/expiry**: cert hết hạn còn pin → app chết. Giảm nhẹ bằng pin **intermediate** ([4.1](#pin-intermediate-ca-để-sống-sót-qua-rotation)) + backup pin.
+**A. Inherent to Flutter — nothing the SDK can do about these:**
+- **Narrow coverage**: only traffic going through the exact Dio instance with the adapter attached, and only to the configured `hostname`. Pinning does **NOT** cover WebView (`webview_flutter`), image loading (`Image.network`, `CachedNetworkImage`), other HTTP libraries, or third-party plugins. → Route sensitive API calls through the pinned Dio instance.
+- **Web builds**: browsers don't allow app-level pinning.
+- **Rotation/expiry management**: a pinned certificate that expires breaks the app. Mitigate by pinning the **intermediate** ([4.1](#pin-the-intermediate-ca-to-survive-rotation)) plus a backup pin.
 
-**B. Do cách hiện thực (đường Dio native transport):**
-- **Buffered, không streaming**: no upload/download progress, no `ResponseType.stream`, no SSE. File lớn dễ tốn RAM → dùng Dio instance không-pin cho các ca này.
-- **`CancelToken` chưa huỷ được request native**: Dio huỷ ở phía Dart nhưng request native vẫn chạy tới khi xong.
-- **iOS gộp header đa giá trị**: `HTTPURLResponse` gộp nhiều header cùng tên (đặc biệt `Set-Cookie`) thành một chuỗi → interceptor cookie có thể parse sai. Android trả đúng list.
-- **iOS `followRedirects=false` là best-effort**: URLSession mặc định vẫn follow redirect.
+**B. Due to the implementation (native transport on the Dio path):**
+- **Buffered, not streaming**: no upload/download progress, no `ResponseType.stream`, no SSE. Large files can consume significant RAM → use a non-pinned Dio instance for these cases.
+- **`CancelToken` can't cancel the native request**: Dio cancels on the Dart side, but the native request keeps running until it completes.
+- **iOS merges multi-value headers**: `HTTPURLResponse` merges multiple headers with the same name (especially `Set-Cookie`) into a single string → a cookie-parsing interceptor may parse this incorrectly. Android returns the correct list.
+- **iOS `followRedirects=false` is best-effort**: URLSession still follows redirects by default.
 
-**C. Đường `http` package và `verifyPin`**: leaf-only, không đảm bảo an toàn — **không dùng cho dữ liệu nhạy cảm** (xem cảnh báo [4.3](#43-tích-hợp-với-http-package), [4.5](#45-xác-minh-thủ-công)).
+**C. The `http` package path and `verifyPin`**: leaf-only, not a strong security guarantee — **do not use them for sensitive data** (see the warnings in [4.3](#43-integrating-with-the-http-package) and [4.5](#45-manual-verification)).
 
-#### Khuyến nghị nhanh
+#### Quick recommendations
 
-- Dữ liệu nhạy cảm → **Dio + `createDioAdapter()`**, pin **intermediate + backup**.
-- Không dựa vào `createIOClient`/`verifyPin` như lớp bảo mật chính.
+- For sensitive data → **Dio + `createDioAdapter()`**, pinning the **intermediate + a backup**.
+- Don't rely on `createIOClient`/`verifyPin` as the primary security layer.
 
 ---
 
 ## 5. Exceptions
 
-Tất cả lỗi từ SDK đều được throw dưới dạng `CShieldException`:
+All errors from the SDK are thrown as `CShieldException`:
 
 ```dart
 class CShieldException implements Exception {
-  final CShieldErrorCode code;    // enum mã lỗi
-  final String message;           // mô tả lỗi
-  final Object? nativeCause;      // lỗi gốc từ native (nếu có)
+  final CShieldErrorCode code;    // error code enum
+  final String message;           // error description
+  final Object? nativeCause;      // underlying native error, if any
 }
 ```
 
 **`CShieldErrorCode`:**
 
-| Code | Nguyên nhân |
+| Code | Cause |
 |---|---|
-| `aipMissingHeader` | Response thiếu header `cs-timestamp` hoặc `cs-signature` |
-| `aipTimestampExpired` | Timestamp nằm ngoài cửa sổ +-30 giây |
-| `aipInvalidSignature` | Chữ ký response không hợp lệ (response bị tampering) |
-| `aipSigningFailed` | Lỗi ký request (private key chưa sẵn sàng) |
-| `aipDetectProxyCA` | Phát hiện proxy CA — AIP từ chối xử lý |
-| `sslNotConfigured` | Gọi `createHttpClient()`/`createIOClient()`/`createDioAdapter()` trước khi gọi `CShieldSSL.configure()` |
-| `sslPinMismatch` | Certificate của server không khớp với pin đã cấu hình |
-| `notInitialized` | Gọi API trước khi gọi `CShieldEmbedded.initialize()` |
-| `invalidArgument` | Tham số không hợp lệ |
-| `nativeError` | Lỗi không xác định từ native SDK |
+| `aipMissingHeader` | Response is missing the `cs-timestamp` or `cs-signature` header |
+| `aipTimestampExpired` | Timestamp falls outside the ±30 second window |
+| `aipInvalidSignature` | The response signature is invalid (response was tampered with) |
+| `aipSigningFailed` | Failed to sign the request (private key not ready) |
+| `aipDetectProxyCA` | Proxy CA detected — AIP refuses to process |
+| `sslNotConfigured` | `createHttpClient()`/`createIOClient()`/`createDioAdapter()` was called before `CShieldSSL.configure()` |
+| `sslPinMismatch` | The server's certificate doesn't match the configured pin |
+| `notInitialized` | An API was called before `CShieldEmbedded.initialize()` |
+| `invalidArgument` | An invalid argument was provided |
+| `nativeError` | An unspecified error from the native SDK |
 
-**Cách bắt lỗi:**
+**Catching errors:**
 
 ```dart
 try {
@@ -501,37 +500,37 @@ try {
 } on CShieldException catch (e) {
   switch (e.code) {
     case CShieldErrorCode.aipTimestampExpired:
-      // Đồng hồ lệch hoặc bị replay attack
-      _showError('Lỗi xác thực thời gian');
+      // Clock skew or a replay attack
+      _showError('Time verification error');
       break;
     case CShieldErrorCode.aipInvalidSignature:
-      // Response bị can thiệp
+      // Response was tampered with
       _logSecurityEvent('Response tampered');
       break;
     case CShieldErrorCode.sslPinMismatch:
-      // Certificate không khớp — MITM hoặc cần rotate pin
+      // Certificate mismatch — MITM or the pin needs rotating
       _logSecurityEvent('SSL pin mismatch');
       break;
     default:
-      _showError('Lỗi bảo mật: ${e.message}');
+      _showError('Security error: ${e.message}');
   }
 }
 ```
 
 ---
 
-## Luồng tích hợp điển hình
+## Typical Integration Flow
 
 ```
 main()
   +-- WidgetsFlutterBinding.ensureInitialized()
-  +-- CShieldEmbedded.initialize()              // bắt buộc — trước runApp()
-  +-- CShieldSSL.configure(pins, host)          // nếu dùng certificate pinning
+  +-- CShieldEmbedded.initialize()              // required — before runApp()
+  +-- CShieldSSL.configure(pins, host)          // if using certificate pinning
   +-- runApp()
 
-Khởi tạo HTTP client (singleton)
+Initialize the HTTP client (singleton)
   +-- CShieldInterceptor(inner: CShieldSSL.createIOClient())   // http package
-      // hoặc Dio:
+      // or Dio:
   +-- dio.httpClientAdapter = CShieldSSL.createDioAdapter()
   +-- dio.interceptors.add(CShieldDioInterceptor())
 ```

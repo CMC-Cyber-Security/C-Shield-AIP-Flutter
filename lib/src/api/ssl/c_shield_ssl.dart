@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:c_shield_embedded/c_shield_embedded.dart';
-import 'package:c_shield_embedded/src/internal/platform/c_shield_embedded_platform_interface.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
+import 'package:c_shield_aip/src/internal/platform/c_shield_embedded_platform_interface.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:dio/dio.dart';
 import 'package:http/io_client.dart';

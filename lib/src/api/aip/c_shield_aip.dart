@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:c_shield_embedded/src/api/exceptions/c_shield_exception.dart';
-import 'package:c_shield_embedded/src/internal/aip/aip_normalizer.dart';
-import 'package:c_shield_embedded/src/internal/platform/c_shield_embedded_platform_interface.dart';
+import 'package:c_shield_aip/src/api/exceptions/c_shield_exception.dart';
+import 'package:c_shield_aip/src/internal/aip/aip_normalizer.dart';
+import 'package:c_shield_aip/src/internal/platform/c_shield_embedded_platform_interface.dart';
 
 /// Low-level AIP (API Integrity Protection) API.
 ///

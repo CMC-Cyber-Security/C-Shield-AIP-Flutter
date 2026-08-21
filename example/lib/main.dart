@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:c_shield_embedded/c_shield_embedded.dart';
+import 'package:c_shield_aip/c_shield_embedded.dart';
 
 const baseUrl = 'https://demo-spring-server.onrender.com';
 const sslHostname = 'demo-spring-server.onrender.com';

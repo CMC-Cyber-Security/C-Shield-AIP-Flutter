@@ -1,9 +1,9 @@
-name: c_shield_embedded
-description: "C-Shield AIP Flutter SDK — API Integrity Protection SDK provide request/response signing and SSL certificate pinning, backed by native AAR/XCFramework."
+name: c_shield_aip
+description: "C-Shield AIP Flutter SDK — provides API Integrity Protection (request/response signing) and SSL certificate pinning for Flutter apps, backed by native AAR/XCFramework."
 version: 1.0.0
-homepage: https://github.com/cmccsmobile/C-Shield-Embedded-Flutter
-repository: https://github.com/cmccsmobile/C-Shield-Embedded-Flutter
-issue_tracker: https://github.com/cmccsmobile/C-Shield-Embedded-Flutter/issues
+homepage: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter
+repository: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter
+issue_tracker: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter/issues
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -15,7 +15,7 @@ dependencies:
   plugin_platform_interface: ^2.0.2
   http: ^1.2.0
   crypto: ^3.0.0
-  dio: ^5.0.0
+  dio: ^5.2.0
 
 dev_dependencies:
   flutter_test:

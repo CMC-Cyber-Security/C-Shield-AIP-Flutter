@@ -1,11 +1,12 @@
-# Tích hợp CShield Embedded Flutter SDK — iOS Host App
+# C-Shield AIP Flutter SDK Integration — iOS Host App
 
-Plugin `c_shield_embedded` không bundle XCFramework. Host app chịu trách nhiệm cung cấp
-`CShieldEmbedded.xcframework` (variant Debug/Release) và `OpenSSL.xcframework`.
+The `c_shield_embedded` plugin does not bundle the XCFramework. The host app is
+responsible for providing `CShieldEmbedded.xcframework` (Debug/Release variants)
+and `OpenSSL.xcframework`.
 
 ---
 
-## Yêu cầu
+## Requirements
 
 - iOS 13.0+
 - Xcode 15+
@@ -13,30 +14,33 @@ Plugin `c_shield_embedded` không bundle XCFramework. Host app chịu trách nhi
 
 ---
 
-## Bước 1 — Nhận file từ CShield team
+## Step 1 — Obtain the files from the CShield team
 
-Nhận đủ các file XCFramework bao gồm (cả 3 đều build riêng theo private key của khách hàng):
+Obtain all of the following XCFramework files (all 3 are built specifically for
+the customer's private key):
 
 ```
 - CShieldEmbedded.xcframework    ← Release variant
-- CShieldEmbedded.xcframework    ← Debug variant (tên file giống Release, phân biệt bằng thư mục chứa)
+- CShieldEmbedded.xcframework    ← Debug variant (same file name, distinguished by folder)
 - OpenSSL.xcframework
 ```
 
 ---
 
-## Bước 2 — Tổ chức thư mục `Libs/`
+## Step 2 — Organize the `Libs/` folder
 
-Dùng Xcode mở thư mục `ios` của dự án Flutter theo đường dẫn `<your_app>/ios/Runner.xcworkspace`. Tạo thư mục `Libs` trong `Runner`, rồi tạo tiếp các thư mục con `Debug` và `Release` trong `Libs`:
+Open the Flutter project's `ios` folder in Xcode via
+`<your_app>/ios/Runner.xcworkspace`. Create a `Libs` folder inside `Runner`,
+then create `Debug` and `Release` subfolders inside `Libs`:
 
 ```
 Runner
-├── Libs/                                       ← thư mục mới tạo
-│   ├── OpenSSL.xcframework                     ← copy từ build/
+├── Libs/                                       ← newly created folder
+│   ├── OpenSSL.xcframework                     ← copied from build/
 │   ├── Debug/
-│   │   └── CShieldEmbedded.xcframework              ← copy bản Debug vào đây
+│   │   └── CShieldEmbedded.xcframework              ← copy the Debug build here
 │   └── Release/
-│       └── CShieldEmbedded.xcframework              ← copy bản Release vào đây
+│       └── CShieldEmbedded.xcframework              ← copy the Release build here
 ├── Flutter/
 ├── Products/
 ├── Pods/
@@ -45,44 +49,48 @@ Runner
 
 ```
 
-> **Lưu ý:** cả 2 file `CShieldEmbedded.xcframework` (Debug/Release) trùng tên nhau —
-> phân biệt hoàn toàn bằng thư mục chứa (`Libs/Debug/` vs `Libs/Release/`). Không cần
-> đổi tên file, chỉ cần copy đúng thư mục.
+> **Note:** both `CShieldEmbedded.xcframework` files (Debug/Release) share the
+> same name — they're distinguished entirely by the folder they live in
+> (`Libs/Debug/` vs `Libs/Release/`). No renaming is needed, just copy into the
+> right folder.
 
-> **Lưu ý:** Phải **kéo thả** từng file
-> `.xcframework` vào đúng vị trí tương ứng trong Xcode Project Navigator:
-> - `OpenSSL.xcframework` → kéo vào nhóm `Libs/`
-> - `CShieldEmbedded.xcframework` (Debug) → kéo vào nhóm `Libs/Debug/`
-> - `CShieldEmbedded.xcframework` (Release) → kéo vào nhóm `Libs/Release/`
+> **Note:** you must **drag and drop** each `.xcframework` file into the
+> matching location in the Xcode Project Navigator:
+> - `OpenSSL.xcframework` → drag into the `Libs/` group
+> - `CShieldEmbedded.xcframework` (Debug) → drag into the `Libs/Debug/` group
+> - `CShieldEmbedded.xcframework` (Release) → drag into the `Libs/Release/` group
 >
-> Nếu không kéo thả, Xcode sẽ không nhận ra các framework này trong project.
+> If you skip the drag-and-drop step, Xcode won't recognize these frameworks
+> in the project.
 
 ---
 
-## Bước 3 — Cập nhật `Podfile`
+## Step 3 — Update the `Podfile`
 
-Mở `ios/Podfile`, thêm `post_install` để set Framework Search Paths cho CShieldEmbedded.
-Cần set ở **hai nơi** để cover cả compile lẫn link:
+Open `ios/Podfile` and add a `post_install` hook to set the Framework Search
+Paths for CShieldEmbedded. This must be set in **two places** to cover both
+compiling and linking:
 
 ```ruby
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
 
-    # 1. Pod targets — để plugin c_shield_embedded compile được `import CShieldEmbedded`.
-    # Dùng sdk-conditional paths để linker chọn đúng slice (simulator vs device).
-    # KHÔNG thêm cả hai slice non-conditional: Xcode dò theo thứ tự và sẽ link nhầm
-    # ios-arm64 (device binary) khi build simulator → "Building for iOS-simulator,
-    # but linking in dylib built for iOS".
+    # 1. Pod targets — so the c_shield_embedded plugin can compile `import CShieldEmbedded`.
+    # Use sdk-conditional paths so the linker picks the correct slice (simulator vs device).
+    # DO NOT add both slices to a non-conditional variable: Xcode searches paths in
+    # order and will link the wrong ios-arm64 (device binary) when building for the
+    # simulator → "Building for iOS-simulator, but linking in dylib built for iOS".
     target.build_configurations.each do |config|
       variant = (config.name == 'Debug') ? 'Debug' : 'Release'
 
-      # Chỉ thêm slice CShieldEmbedded vào các biến CÓ ĐIỀU KIỆN [sdk=...], và phải
-      # GIỮ LẠI giá trị conditional sẵn có — flutter_additional_ios_build_settings
-      # đã đặt path Flutter engine vào đây. Nếu ghi đè sẽ mất path Flutter ⇒
-      # "Unable to find module 'Flutter'". KHÔNG đụng vào FRAMEWORK_SEARCH_PATHS
-      # non-conditional và KHÔNG thêm cả hai slice chung một biến (Xcode dò theo
-      # thứ tự → link nhầm ios-arm64 device khi build simulator).
+      # Only add the CShieldEmbedded slice to the CONDITIONAL [sdk=...] variables,
+      # and make sure to PRESERVE the existing conditional value —
+      # flutter_additional_ios_build_settings already sets the Flutter engine path
+      # here. Overwriting it would lose the Flutter path ⇒ "Unable to find module
+      # 'Flutter'". DO NOT touch the non-conditional FRAMEWORK_SEARCH_PATHS and DO
+      # NOT add both slices to the same variable (Xcode searches in order → wrong
+      # ios-arm64 device slice gets linked when building for the simulator).
       config.build_settings['FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]'] = (
         ['$(inherited)'] + Array(config.build_settings['FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]']).flatten +
         ["\"$(PODS_ROOT)/../Libs/#{variant}/CShieldEmbedded.xcframework/ios-arm64\""]
@@ -95,10 +103,11 @@ post_install do |installer|
     end
   end
 
-  # 2. Aggregate xcconfig (Pods-Runner.debug/release.xcconfig) — dùng sdk-conditional paths
-  # để linker chọn đúng slice của xcframework (simulator vs device).
-  # Không dùng FRAMEWORK_SEARCH_PATHS non-conditional vì Xcode tìm theo thứ tự và sẽ
-  # link nhầm ios-arm64 (device binary) khi build simulator.
+  # 2. Aggregate xcconfig (Pods-Runner.debug/release.xcconfig) — use sdk-conditional
+  # paths so the linker picks the correct xcframework slice (simulator vs device).
+  # Don't use non-conditional FRAMEWORK_SEARCH_PATHS, since Xcode searches paths in
+  # order and will link the wrong ios-arm64 (device binary) when building for the
+  # simulator.
   installer.aggregate_targets.each do |aggregate_target|
     aggregate_target.xcconfigs.each do |config_name, xcconfig|
       variant = (config_name == 'Debug') ? 'Debug' : 'Release'
@@ -115,7 +124,7 @@ post_install do |installer|
 end
 ```
 
-Sau đó chạy:
+Then run:
 
 ```bash
 flutter pub get
@@ -124,29 +133,29 @@ cd ios && pod install
 
 ---
 
-## Bước 4 — Cấu hình Xcode (thủ công, làm 1 lần)
+## Step 4 — Configure Xcode (manual, one-time)
 
-Mở `Runner.xcworkspace` trong Xcode.
+Open `Runner.xcworkspace` in Xcode.
 
 ### 4a. Embed OpenSSL
 
 `Runner target → General → Frameworks, Libraries, and Embedded Content → +`
 
-Chọn `Libs/OpenSSL.xcframework`, cột **Embed** đặt thành **Embed & Sign**.
+Select `Libs/OpenSSL.xcframework` and set the **Embed** column to **Embed & Sign**.
 
-Nếu thấy `CShieldEmbedded.xcframework`, click chọn rồi xoá `CShieldEmbedded.xcframework` bằng dấu `-`
+If `CShieldEmbedded.xcframework` shows up here, select it and remove it with the `-` button.
 
-### 4b. Tắt User Script Sandboxing
+### 4b. Disable User Script Sandboxing
 
 `Runner target → Build Settings → User Script Sandboxing → No`
 
-### 4c. Thêm Run Script Phase để embed CShieldEmbedded
+### 4c. Add a Run Script phase to embed CShieldEmbedded
 
 `Runner target → Build Phases → + → New Run Script Phase`
 
-Đặt tên phase là **Embed CShieldEmbedded**, kéo lên ngay bên dưới **Compile Sources**.
+Name the phase **Embed CShieldEmbedded** and drag it to right below **Compile Sources**.
 
-Dán script sau vào ô script:
+Paste the following script:
 
 ```bash
 if [[ "$SDK_NAME" == *"simulator"* ]]; then
@@ -156,8 +165,9 @@ else
 fi
 
 # Normalize configuration name to Debug or Release.
-# Flutter flavors tạo ra tên config dạng "Debug-production", "Release-production",
-# "Profile-production"... không khớp với tên thư mục trong Libs/.
+# Flutter flavors produce config names like "Debug-production",
+# "Release-production", "Profile-production"... which don't match the
+# folder names under Libs/.
 if [[ "$CONFIGURATION" == *"Release"* ]] || [[ "$CONFIGURATION" == *"Profile"* ]]; then
   LIB_CONFIG="Release"
 else
@@ -175,7 +185,7 @@ if [ -n "${EXPANDED_CODE_SIGN_IDENTITY}" ]; then
 fi
 ```
 
-Trong phần **Output Files** của phase này, thêm:
+In the **Output Files** section of this phase, add:
 
 ```
 $(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/CShieldEmbedded.framework
@@ -183,7 +193,7 @@ $(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/CShieldEmbedded.framework
 
 ---
 
-## Kết quả cuối — Cấu trúc thư mục
+## Final result — folder structure
 
 ```
 <your_app>/ios/
@@ -193,47 +203,48 @@ $(BUILT_PRODUCTS_DIR)/$(FRAMEWORKS_FOLDER_PATH)/CShieldEmbedded.framework
 │   │   └── CShieldEmbedded.xcframework
 │   └── Release/
 │       └── CShieldEmbedded.xcframework
-├── Podfile                    ← đã cập nhật ở Bước 3
+├── Podfile                    ← updated in Step 3
 └── Runner.xcworkspace
 ```
 
 ---
 
-## Tóm tắt vai trò các bước
+## Summary of what each step does
 
-| Bước | Cái gì xảy ra | Tương đương native doc |
+| Step | What happens | Equivalent native doc step |
 |------|---------------|------------------------|
-| `s.frameworks = 'CShieldEmbedded'` trong plugin podspec | CocoaPods tự động ghi `-framework CShieldEmbedded` vào `Pods-Runner.*.xcconfig` → Runner inherit | Bước 6: Other Linker Flags |
-| `post_install` search paths | Compiler và linker tìm được `CShieldEmbedded.framework` theo variant | Bước 7: Framework Search Paths |
-| Embed OpenSSL (Xcode — Bước 4a) | `OpenSSL.xcframework` được đóng gói vào app bundle | Bước 5: Embed & Sign |
-| Run Script "Embed CShieldEmbedded" (Xcode — Bước 4c) | Copy đúng variant (Debug/Release) vào app bundle lúc build | Bước 9: Run Script Phase |
-| Tắt User Script Sandboxing (Xcode — Bước 4b) | Cho phép Run Script truy cập file ngoài sandbox | Bước 8: User Script Sandboxing |
+| `s.frameworks = 'CShieldEmbedded'` in the plugin's podspec | CocoaPods automatically writes `-framework CShieldEmbedded` into `Pods-Runner.*.xcconfig` → Runner inherits it | Step 6: Other Linker Flags |
+| `post_install` search paths | The compiler and linker can find `CShieldEmbedded.framework` for the right variant | Step 7: Framework Search Paths |
+| Embed OpenSSL (Xcode — Step 4a) | `OpenSSL.xcframework` gets packaged into the app bundle | Step 5: Embed & Sign |
+| Run Script "Embed CShieldEmbedded" (Xcode — Step 4c) | Copies the right variant (Debug/Release) into the app bundle at build time | Step 9: Run Script Phase |
+| Disable User Script Sandboxing (Xcode — Step 4b) | Allows the Run Script to access files outside the sandbox | Step 8: User Script Sandboxing |
 
 ---
 
-## Khác biệt so với `c_shield_sdk` (cshieldflutter)
+## Differences from `c_shield_sdk` (cshieldflutter)
 
-`c_shield_embedded` là bản thu gọn — chỉ có AIP + SSL pinning, không có RASP:
+`c_shield_embedded` is a focused build — AIP + SSL pinning only, no RASP:
 
-- Không có `RaspBridge`, không có `c_shield_embedded/rasp_events` hay
+- No `RaspBridge`, no `c_shield_embedded/rasp_events` or
   `c_shield_embedded/threat_events` EventChannel.
-- `sdk.initialize` không nhận `loadAppThreatReaction`/`loadAppThreatPopup`.
-- Bộ mã lỗi (`CShieldErrorCode`) chỉ có 6 mã: `aip_invalid_signature`,
+- `sdk.initialize` doesn't accept `loadAppThreatReaction`/`loadAppThreatPopup`.
+- `CShieldErrorCode` has only 6 codes: `aip_invalid_signature`,
   `aip_signing_failed`, `ssl_not_configured`, `ssl_pin_mismatch`,
-  `invalid_argument`, `native_error` — không có `aip_missing_header`,
-  `aip_timestamp_expired`, `aip_proxy_ca` (những mã này chỉ dùng cho các
-  luồng AIP nâng cao không có trong bản embedded).
+  `invalid_argument`, `native_error` — it does not include
+  `aip_missing_header`, `aip_timestamp_expired`, or `aip_proxy_ca` (those
+  codes are only used by advanced AIP flows not present in this SDK).
 
-Về mặt hạ tầng CocoaPods (Podfile, Libs/, Run Script), làm **giống hệt**
-hướng dẫn trên — chỉ đổi tên pod `c_shield_sdk` → `c_shield_embedded`.
+The CocoaPods infrastructure (Podfile, Libs/, Run Script) is set up
+**identically** to the instructions above — only the pod name changes, from
+`c_shield_sdk` to `c_shield_embedded`.
 
 ---
 
 ## Troubleshooting
 
-### Build simulator lỗi: `linking in dylib built for 'iOS'`
+### Simulator build fails: `linking in dylib built for 'iOS'`
 
-**Triệu chứng**:
+**Symptom**:
 
 ```
 Error (Xcode): Building for 'iOS-simulator', but linking in dylib
@@ -241,17 +252,33 @@ Error (Xcode): Building for 'iOS-simulator', but linking in dylib
 Error (Xcode): Linker command failed with exit code 1
 ```
 
-**Nguyên nhân**: Khi `FRAMEWORK_SEARCH_PATHS` chứa cả hai slice path không có điều kiện, Xcode tìm `CShieldEmbedded.framework` theo thứ tự trong danh sách. Nếu `ios-arm64` (device binary) đứng trước `ios-arm64_x86_64-simulator`, Xcode sẽ link nhầm binary dành cho device ngay cả khi đang build cho simulator — bỏ qua hoàn toàn cơ chế slice-selection của xcframework.
+**Cause**: When `FRAMEWORK_SEARCH_PATHS` contains both slice paths without a
+condition, Xcode searches for `CShieldEmbedded.framework` in list order. If
+`ios-arm64` (the device binary) comes before
+`ios-arm64_x86_64-simulator`, Xcode links the wrong binary — the one built for
+device — even when building for the simulator, bypassing the xcframework's
+slice-selection mechanism entirely.
 
-**Fix**: Dùng xcconfig conditional syntax `[sdk=...]` ở phần aggregate xcconfig trong `post_install` để mỗi SDK chỉ thấy đúng slice path của mình (đã áp dụng trong Bước 3 ở trên). Sau khi sửa Podfile, chạy lại `pod install`.
+**Fix**: Use the xcconfig conditional syntax `[sdk=...]` in the aggregate
+xcconfig section of `post_install` so each SDK only sees its own slice path
+(already applied in Step 3 above). After editing the Podfile, run
+`pod install` again.
 
 ---
 
-### Build simulator lỗi: `(l)stat: No such file or directory` tại `Libs/Debug-production/...`
+### Simulator build fails: `(l)stat: No such file or directory` at `Libs/Debug-production/...`
 
-**Nguyên nhân**: Khi project dùng Flutter flavors (e.g. `production`, `development`), Xcode đặt tên build configuration theo dạng `Debug-production`, `Release-production`, `Profile-production`... thay vì `Debug`/`Release` thuần. Script trong phase "Embed CShieldEmbedded" dùng `${CONFIGURATION}` trực tiếp làm tên thư mục, nên tìm `Libs/Debug-production/` nhưng thư mục đó không tồn tại.
+**Cause**: When the project uses Flutter flavors (e.g. `production`,
+`development`), Xcode names the build configuration `Debug-production`,
+`Release-production`, `Profile-production`, etc., instead of plain
+`Debug`/`Release`. The script in the "Embed CShieldEmbedded" phase used
+`${CONFIGURATION}` directly as the folder name, so it looked for
+`Libs/Debug-production/`, which doesn't exist.
 
-**Fix**: Thêm bước chuẩn hóa trong script trước khi dùng làm đường dẫn (script đã được cập nhật ở Bước 4c phía trên). Nếu đã cấu hình thủ công bằng script cũ, sửa lại bằng cách thêm đoạn sau vào script, trước dòng `SRC=...`:
+**Fix**: Add a normalization step in the script before using it as a path
+(already applied in the Step 4c script above). If you configured this
+manually with an older script, fix it by adding the following before the
+`SRC=...` line:
 
 ```bash
 if [[ "$CONFIGURATION" == *"Release"* ]] || [[ "$CONFIGURATION" == *"Profile"* ]]; then
@@ -261,30 +288,43 @@ else
 fi
 ```
 
-Và thay `${CONFIGURATION}` → `${LIB_CONFIG}` trong dòng `SRC=...`.
+And replace `${CONFIGURATION}` with `${LIB_CONFIG}` in the `SRC=...` line.
 
 ---
 
-### `pod install` báo lỗi: `Unable to find compatibility version string for object version 74`
+### `pod install` fails with: `Unable to find compatibility version string for object version 74`
 
-**Nguyên nhân**: Xcode 16 (một số phiên bản beta/RC) lưu project với `objectVersion = 74`. xcodeproj gem (dùng trong CocoaPods 1.16.x) chỉ biết các giá trị `60` (Xcode 15.0), `63` (Xcode 15.3), `77` (Xcode 16.0 final) — bỏ qua `74`.
+**Cause**: Xcode 16 (some beta/RC versions) saves the project with
+`objectVersion = 74`. The xcodeproj gem (used by CocoaPods 1.16.x) only knows
+about `60` (Xcode 15.0), `63` (Xcode 15.3), and `77` (Xcode 16.0 final) — it
+doesn't recognize `74`.
 
-**Fix**: Mở `ios/Runner.xcodeproj/project.pbxproj`, tìm dòng đầu file và sửa:
+**Fix**: Open `ios/Runner.xcodeproj/project.pbxproj`, find the line near the
+top of the file, and change:
 
 ```
 objectVersion = 74;
 ```
-thành:
+to:
 ```
 objectVersion = 77;
 ```
 
 ---
 
-### `pod install` in warning: `Xcodeproj doesn't know about the following attributes {"attributesByRelativePath" => ...} for the 'PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet'`
+### `pod install` prints a warning: `Xcodeproj doesn't know about the following attributes {"attributesByRelativePath" => ...} for the 'PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet'`
 
-**Đây là warning vô hại**, không gây pod install thất bại.
+**This is a harmless warning** — it does not cause `pod install` to fail.
 
-**Giải thích**: Khi thực hiện Bước 4a (thêm `OpenSSL.xcframework` vào "Embed & Sign" trong Xcode UI), Xcode tự động tạo ra một entry kiểu `PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet` trong `project.pbxproj` để lưu các thuộc tính `CodeSignOnCopy` / `RemoveHeadersOnCopy`. Entry này sinh ra vì thư mục `Libs/` được Xcode quản lý dưới dạng **File System Synchronized Root Group** (tính năng Xcode 15+). xcodeproj gem biết ISA này nhưng chưa biết attribute `attributesByRelativePath` bên trong nó nên in cảnh báo.
+**Explanation**: When performing Step 4a (adding `OpenSSL.xcframework` with
+"Embed & Sign" in the Xcode UI), Xcode automatically creates a
+`PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet` entry in
+`project.pbxproj` to store the `CodeSignOnCopy` / `RemoveHeadersOnCopy`
+attributes. This entry appears because the `Libs/` folder is managed by Xcode
+as a **File System Synchronized Root Group** (an Xcode 15+ feature). The
+xcodeproj gem knows about this ISA type but not yet about the
+`attributesByRelativePath` attribute inside it, hence the warning.
 
-`pod install` **không ghi đè** `Runner/project.pbxproj` nên attribute được giữ nguyên — OpenSSL vẫn được embed với `CodeSignOnCopy` + `RemoveHeadersOnCopy` đúng cách khi build trong Xcode.
+`pod install` **does not overwrite** `Runner/project.pbxproj`, so the
+attribute is preserved — OpenSSL is still embedded correctly with
+`CodeSignOnCopy` + `RemoveHeadersOnCopy` when building in Xcode.
