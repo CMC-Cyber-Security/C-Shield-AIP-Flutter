@@ -1,6 +1,6 @@
-# c_shield_aip_example
+# c_shield_embedded_example
 
-Demonstrates how to use the c_shield_aip plugin.
+Demonstrates how to use the c_shield_embedded plugin.
 
 ## Getting Started
 

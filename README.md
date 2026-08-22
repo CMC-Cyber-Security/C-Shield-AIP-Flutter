@@ -1,7 +1,8 @@
-# C-Shield AIP Flutter SDK
+# C-Shield Embedded Flutter SDK
 
-C-Shield AIP (API Integrity Protection) Flutter SDK provides two protection solutions for Flutter applications: **API Protection** (request/response signing) and **SSL Pinning** (certificate pinning), securing the communication between the app and the server.
+C-Shield Embedded Flutter SDK provides **AIP (API Integrity Protection)** for Flutter applications, protecting the communication between the app and the server through certificate pinning and request/response signing.
 
+The SDK wraps native AAR (Android) and XCFramework (iOS) libraries, so the signing/verification layer always runs natively.
 
 ---
 
@@ -12,10 +13,10 @@ C-Shield AIP (API Integrity Protection) Flutter SDK provides two protection solu
    - 1.2 [Android configuration](#12-android-configuration)
    - 1.3 [iOS configuration](#13-ios-configuration)
 2. [Initializing the SDK](#2-initializing-the-sdk)
-3. [API Protection](#3-api-protection)
+3. [AIP — API Integrity Protection](#3-aip--api-integrity-protection)
    - 3.1 [Automatic mode — CShieldInterceptor (http)](#31-automatic-mode--cshieldinterceptor-http)
    - 3.2 [Automatic mode — CShieldDioInterceptor (Dio)](#32-automatic-mode--cshielddiointerceptor-dio)
-   - 3.3 [Manual mode — CShieldAP](#33-manual-mode--cshieldap)
+   - 3.3 [Manual mode — CShieldAIP](#33-manual-mode--cshieldaip)
    - 3.4 [Signing protocol](#34-signing-protocol)
 4. [SSL — Certificate Pinning](#4-ssl--certificate-pinning)
    - 4.1 [Obtaining pin values](#41-obtaining-pin-values)
@@ -32,13 +33,13 @@ C-Shield AIP (API Integrity Protection) Flutter SDK provides two protection solu
 
 ### 1.1 Add dependency to pubspec.yaml
 
-Add `c_shield_aip` to `pubspec.yaml`:
+Add `c_shield_embedded` to `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter:
     sdk: flutter
-  c_shield_aip: ^1.0.0
+  c_shield_embedded: ^1.0.0
 ```
 
 Then run:
@@ -51,7 +52,7 @@ flutter pub get
 
 #### Step 1 — Obtain the AAR files from CMC CShield
 
-The Android SDK is built per customer, using the certificate hash of your signed app. Contact CMC CShield's team to receive the AAR files matching your app's signing certificate.
+The Android SDK is built per customer, using the certificate hash of your signed app. Contact CMC CShield to receive the AAR files matching your app's signing certificate.
 
 #### Step 2 — Place the AAR files into the project
 
@@ -95,42 +96,42 @@ flutter build appbundle --release
 
 ### 1.3 iOS configuration
 
-Please follow the steps in the [iOS Integration Guide](https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter/blob/main/doc/ios-host-app-integration.md).
+Please follow the steps in the [iOS Integration Guide](https://github.com/CMC-Cyber-Security/C-Shield-Embedded-Flutter/blob/main/doc/ios-host-app-integration.md).
 
 ---
 
 ## 2. Initializing the SDK
 
-Call `CShieldAIP.initialize()` **before `runApp()`** in your `main()` function:
+Call `CShieldEmbedded.initialize()` **before `runApp()`** in your `main()` function:
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 import 'package:flutter/material.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await CShieldAIP.initialize();
+  await CShieldEmbedded.initialize();
   runApp(const MyApp());
 }
 ```
 
-If `initialize()` isn't called before using the other APIs, native behavior isn't guaranteed — always call it before any `CShieldSSL`/`CShieldAP` call.
+If `initialize()` isn't called before using the other APIs, native behavior isn't guaranteed — always call it before any `CShieldSSL`/`CShieldAIP` call.
 
 ---
 
-## 3. API Protection
+## 3. AIP — API Integrity Protection
 
-API Protection signs every request sent to the server and verifies the signature of every response received, preventing MITM and replay attacks.
+AIP signs every request sent to the server and verifies the signature of every response received, preventing MITM and replay attacks.
 
 The SDK offers two integration modes:
 
 - **Automatic mode (recommended):** Use `CShieldInterceptor` (for the `http` package) or `CShieldDioInterceptor` (for Dio - recommended). Signing/verification happens fully automatically.
-- **Manual mode:** Use `CShieldAP` directly for full control over payload and timing.
+- **Manual mode:** Use `CShieldAIP` directly for full control over payload and timing.
 
 ### 3.1 Automatic mode — CShieldInterceptor (http)
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 import 'package:http/http.dart' as http;
 
 // Create once, reuse across the whole app
@@ -161,13 +162,13 @@ final response = await client.post(
 ### 3.2 Automatic mode — CShieldDioInterceptor (Dio) - Recommended
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 
 final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
 
-// Add the API Protection interceptor
+// Add the AIP interceptor
 dio.interceptors.add(const CShieldDioInterceptor());
 
 // Combine with SSL pinning:
@@ -186,25 +187,25 @@ final response = await dio.post('/api/v1/login', data: {'user': 'alice'});
 
 > When `verifyResponses: true`, the interceptor temporarily forces `ResponseType.bytes` to read the raw bytes for verification, then decodes back to the original type before returning to the caller.
 
-### 3.3 Manual mode — CShieldAP
+### 3.3 Manual mode — CShieldAIP
 
 Use this when you need full control — WebSocket, a custom HTTP client, or detailed payload logging.
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 
 // 1. Sign a request manually
-final apHeaders = await CShieldAP.signRequest(
+final aipHeaders = await CShieldAIP.signRequest(
   method: 'POST',
   path: '/api/v1/login',    // path only, no query string
   body: Uint8List.fromList(utf8.encode(jsonEncode({'user': 'alice'}))),
   contentType: 'application/json',
 );
-// apHeaders = {'cs-timestamp': '...', 'cs-signature': '...'}
+// aipHeaders = {'cs-timestamp': '...', 'cs-signature': '...'}
 // Attach these to the request before sending
 
 // 2. Verify a response manually
-await CShieldAP.verifyResponse(
+await CShieldAIP.verifyResponse(
   statusCode: 200,
   path: '/api/v1/login',
   headers: response.headers,
@@ -214,18 +215,18 @@ await CShieldAP.verifyResponse(
 
 // 3. Sign a raw payload (advanced)
 final ts = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-final norm = await CShieldAP.normalizeBody(
+final norm = await CShieldAIP.normalizeBody(
   body: bodyBytes,
   contentType: 'application/json',
 );
 final payload = 'POST./api/v1/login.$ts.${norm['hash']}';
-final signature = await CShieldAP.sign(payload);
+final signature = await CShieldAIP.sign(payload);
 
 // 4. Verify a raw signature
-await CShieldAP.verify(payload: payload, signature: signature);
+await CShieldAIP.verify(payload: payload, signature: signature);
 ```
 
-**`CShieldAP` API:**
+**`CShieldAIP` API:**
 
 | Method | Description |
 |---|---|
@@ -351,7 +352,7 @@ await CShieldSSL.configure(
 > ⚠️ **Not recommended for sensitive APIs.** The `http` path uses `badCertificateCallback`, which **only fires when the certificate fails default validation**. A MITM certificate chaining to a trusted CA (even a CA the victim installed themselves) will **pass without pin checking**. It also **only compares the leaf**, so intermediate pinning isn't possible. For sensitive data, use **Dio + `createDioAdapter()`** ([4.4](#44-integrating-with-dio)).
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 
 // Setup (once, in main() or app init)
 await CShieldSSL.configure(
@@ -368,19 +369,19 @@ final response = await client.get(
 );
 ```
 
-**Combining SSL pinning + API Protection:**
+**Combining SSL pinning + AIP:**
 
 ```dart
 final client = CShieldInterceptor(
   inner: CShieldSSL.createIOClient(), // SSL pinning at the inner layer
 );
-// client now has both certificate pinning and automatic API Protection signing/verification
+// client now has both certificate pinning and automatic AIP signing/verification
 ```
 
 ### 4.4 Integrating with Dio
 
 ```dart
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 import 'package:dio/dio.dart';
 
 await CShieldSSL.configure(
@@ -397,7 +398,7 @@ final dio = Dio(BaseOptions(baseUrl: 'https://api.example.com'));
 // adapter (unaffected).
 dio.httpClientAdapter = CShieldSSL.createDioAdapter();
 
-// Combine with API Protection
+// Combine with AIP
 dio.interceptors.add(const CShieldDioInterceptor());
 ```
 
@@ -480,14 +481,14 @@ class CShieldException implements Exception {
 
 | Code | Cause |
 |---|---|
-| `apMissingHeader` | Response is missing the `cs-timestamp` or `cs-signature` header |
-| `apTimestampExpired` | Timestamp falls outside the ±30 second window |
-| `apInvalidSignature` | The response signature is invalid (response was tampered with) |
-| `apSigningFailed` | Failed to sign the request (private key not ready) |
-| `apDetectProxyCA` | Proxy CA detected — API Protection refuses to process |
+| `aipMissingHeader` | Response is missing the `cs-timestamp` or `cs-signature` header |
+| `aipTimestampExpired` | Timestamp falls outside the ±30 second window |
+| `aipInvalidSignature` | The response signature is invalid (response was tampered with) |
+| `aipSigningFailed` | Failed to sign the request (private key not ready) |
+| `aipDetectProxyCA` | Proxy CA detected — AIP refuses to process |
 | `sslNotConfigured` | `createHttpClient()`/`createIOClient()`/`createDioAdapter()` was called before `CShieldSSL.configure()` |
 | `sslPinMismatch` | The server's certificate doesn't match the configured pin |
-| `notInitialized` | An API was called before `CShieldAIP.initialize()` |
+| `notInitialized` | An API was called before `CShieldEmbedded.initialize()` |
 | `invalidArgument` | An invalid argument was provided |
 | `nativeError` | An unspecified error from the native SDK |
 
@@ -498,11 +499,11 @@ try {
   final response = await client.post(Uri.parse('https://api.example.com/login'), ...);
 } on CShieldException catch (e) {
   switch (e.code) {
-    case CShieldErrorCode.apTimestampExpired:
+    case CShieldErrorCode.aipTimestampExpired:
       // Clock skew or a replay attack
       _showError('Time verification error');
       break;
-    case CShieldErrorCode.apInvalidSignature:
+    case CShieldErrorCode.aipInvalidSignature:
       // Response was tampered with
       _logSecurityEvent('Response tampered');
       break;
@@ -523,7 +524,7 @@ try {
 ```
 main()
   +-- WidgetsFlutterBinding.ensureInitialized()
-  +-- CShieldAIP.initialize()                   // required — before runApp()
+  +-- CShieldEmbedded.initialize()              // required — before runApp()
   +-- CShieldSSL.configure(pins, host)          // if using certificate pinning
   +-- runApp()
 

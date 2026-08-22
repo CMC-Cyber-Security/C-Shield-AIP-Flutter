@@ -2,3 +2,12 @@
 
 - Initial release
 
+## 1.0.1
+
+- Downgrade Flutter version
+
+## 1.0.2
+
+- API refactoring
+
+

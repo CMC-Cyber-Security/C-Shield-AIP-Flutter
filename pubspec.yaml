@@ -1,9 +1,9 @@
-name: c_shield_aip
-description: "C-Shield AIP Flutter SDK — API Integrity Protection providing two solutions: API Protection (request/response signing) and SSL Pinning, backed by native AAR/XCFramework."
-version: 1.0.0
-homepage: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter
-repository: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter
-issue_tracker: https://github.com/CMC-Cyber-Security/C-Shield-AIP-Flutter/issues
+name: c_shield_embedded
+description: "C-Shield Embedded Flutter SDK — provides AIP (API Integrity Protection: request/response signing) and SSL certificate pinning for Flutter apps, backed by native AAR/XCFramework."
+version: 1.0.2
+homepage: https://github.com/CMC-Cyber-Security/C-Shield-Embedded-Flutter
+repository: https://github.com/CMC-Cyber-Security/C-Shield-Embedded-Flutter
+issue_tracker: https://github.com/CMC-Cyber-Security/C-Shield-Embedded-Flutter/issues
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -40,10 +40,10 @@ flutter:
   plugin:
     platforms:
       android:
-        package: com.cmc.c_shield_aip.c_shield_aip
-        pluginClass: CShieldAipPlugin
+        package: com.cmc.c_shield_embedded.c_shield_embedded
+        pluginClass: CShieldEmbeddedPlugin
       ios:
-        pluginClass: CShieldAipPlugin
+        pluginClass: CShieldEmbeddedPlugin
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:

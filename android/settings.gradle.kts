@@ -1,1 +1,1 @@
-rootProject.name = "c_shield_aip"
+rootProject.name = "c_shield_embedded"

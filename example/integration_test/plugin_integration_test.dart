@@ -9,12 +9,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-import 'package:c_shield_aip/c_shield_aip.dart';
+import 'package:c_shield_embedded/c_shield_embedded.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('getPlatformVersion test', (WidgetTester tester) async {
-    await CShieldAIP.initialize();
+    await CShieldEmbedded.initialize();
   });
 }
