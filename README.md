@@ -2,7 +2,6 @@
 
 C-Shield AIP (API Integrity Protection) Flutter SDK provides two protection solutions for Flutter applications: **API Protection** (request/response signing) and **SSL Pinning** (certificate pinning), securing the communication between the app and the server.
 
-The SDK wraps native AAR (Android) and XCFramework (iOS) libraries, so the signing/verification layer always runs natively.
 
 ---
 
@@ -52,7 +51,7 @@ flutter pub get
 
 #### Step 1 — Obtain the AAR files from CMC CShield
 
-The Android SDK is built per customer, using the certificate hash of your signed app. Contact CMC CShield to receive the AAR files matching your app's signing certificate.
+The Android SDK is built per customer, using the certificate hash of your signed app. Contact CMC CShield's team to receive the AAR files matching your app's signing certificate.
 
 #### Step 2 — Place the AAR files into the project
 
